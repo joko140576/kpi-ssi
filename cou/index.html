@@ -1,0 +1,508 @@
+
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tupoksi & KPI - Tim Pengisian ATM (Penilaian)</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root{--accent:#0d6efd}
+    body{background:#f4f6f9;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    .container-card{max-width:1100px;margin:28px auto}
+    .role-btns .btn{min-width:140px;margin:6px}
+    .panel{background:white;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06);padding:20px}
+    .role-title{display:flex;align-items:center;gap:12px}
+    .role-badge{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#3b82f6);display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .kpi-table th{white-space:nowrap}
+    .small-muted{font-size:13px;color:#6b7280}
+    .assess-panel{margin-top:18px;padding:16px;border-radius:10px;background:#fafafa;border:1px solid #eef2ff}
+    @media (max-width:720px){.role-title h3{font-size:18px}}
+  </style>
+</head>
+<body>
+  <div class="container container-card">
+    <div class="panel">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h2 class="mb-1">Tupoksi & KPI — Tim Sentra Operasi COU</h2>
+          <div class="small-muted">Pilih peran untuk melihat Tugas Pokok, Rincian, dan tabel KPI</div>
+        </div>
+        <div class="text-end">
+          <small class="small-muted">Generated: Divisi HCC - Unit Development </small>
+        </div>
+      </div>
+
+      <div class="role-btns mb-4">
+        <button class="btn btn-outline-primary" data-role="kasir">Kasir</button>
+        <button class="btn btn-outline-primary" data-role="custody">Custody</button>
+        <button class="btn btn-outline-primary" data-role="driver">Driver</button>
+        <button class="btn btn-outline-primary" data-role="flm">FLM (First Level Maintenance)</button>
+        <button class="btn btn-outline-primary" data-role="scheduler">Admin Scheduler</button>
+        <button class="btn btn-outline-primary" data-role="adminkas">Admin Kas</button>
+      </div>
+
+      <div id="detailArea">
+        <div class="text-center py-5">
+          <img src="https://cdn.jsdelivr.net/gh/tabler/tabler-icons/icons/brand-open-source.svg" alt="" style="width:80px;opacity:.08">
+          <p class="small-muted mt-3">Klik tombol jabatan untuk menampilkan rincian tugas dan KPI.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Data for each role (HTML snippets with KPI tables). Bobot disimpan sebagai angka (tanpa %).
+    const roles = {
+      kasir: {
+        title: 'Kasir',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">K</div>
+            <div>
+              <h3>Kasir</h3>
+              <div class="small-muted">Bertanggung jawab atas pengelolaan dan rekonsiliasi uang sebelum diserahkan ke custody</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Mengambil uang dari Bank Sentral sesuai jadwal dan dokumentasi.</li>
+            <li>Menghitung dan menyortir uang (layak edar / tidak layak edar).</li>
+            <li>Mengisi kaset ATM sesuai denominasi dan memberikan label identitas.</li>
+            <li>Membuat laporan harian dan berita acara serah terima kaset.</li>
+            <li>Berkoordinasi dengan Custody untuk penyerahan kaset.</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th style="width:40px">No</th><th>Aspek</th><th>Indikator</th><th>Target</th><th style="width:110px">Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Ketepatan Perhitungan</td><td>Kesalahan hitung (short/over)</td><td>0</td><td class="bobot">25</td></tr>
+              <tr><td>2</td><td>Kecepatan Proses</td><td>Waktu penyortiran & pengemasan / kaset</td><td>≤ 20 menit</td><td class="bobot">15</td></tr>
+              <tr><td>3</td><td>Kepatuhan SOP</td><td>Penggunaan CCTV & dokumen lengkap</td><td>100%</td><td class="bobot">20</td></tr>
+              <tr><td>4</td><td>Quality Uang</td><td>% uang layak edar</td><td>≥ 99%</td><td class="bobot">10</td></tr>
+              <tr><td>5</td><td>Ketepatan Laporan</td><td>Akurasi laporan harian</td><td>100%</td><td class="bobot">15</td></tr>
+              <tr><td>6</td><td>Disiplin</td><td>Hadir & on-time</td><td>≥ 95%</td><td class="bobot">15</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+
+      custody: {
+        title: 'Custody',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">C</div>
+            <div>
+              <h3>Custody</h3>
+              <div class="small-muted">Bertanggung jawab atas penerimaan, pengamanan, pengangkutan, dan penyerahan kaset ATM</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Memeriksa kaset & dokumen sebelum keberangkatan.</li>
+            <li>Mengangkut kaset sesuai rute dan SOP keamanan.</li>
+            <li>Menyerahkan kaset di lokasi ATM dan melakukan serah terima.</li>
+            <li>Mencatat aktivitas perjalanan dan tanda terima sebagai arsip.</li>
+            <li>Melaporkan kejadian tak biasa (kerusakan/kehilangan).</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th>No</th><th>Aspek</th><th>Indikator</th><th>Target</th><th>Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Ketepatan Waktu</td><td>% pengiriman sesuai jadwal</td><td>≥ 98%</td><td class="bobot">25</td></tr>
+              <tr><td>2</td><td>Keamanan</td><td>Insiden kehilangan/segels rusak</td><td>0</td><td class="bobot">25</td></tr>
+              <tr><td>3</td><td>Dokumen Lengkap</td><td>Manifest & tanda terima lengkap</td><td>100%</td><td class="bobot">15</td></tr>
+              <tr><td>4</td><td>Kepatuhan SOP</td><td>Pemenuhan prosedur pengamanan</td><td>100%</td><td class="bobot">20</td></tr>
+              <tr><td>5</td><td>Koordinasi</td><td>Penilaian atasan & rekan</td><td>≥ 85</td><td class="bobot">15</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+
+      driver: {
+        title: 'Driver',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">D</div>
+            <div>
+              <h3>Driver</h3>
+              <div class="small-muted">Mengantar tim dan kaset ke lokasi serta menjaga keamanan kendaraan</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Melakukan pemeriksaan kendaraan sebelum berangkat.</li>
+            <li>Mengemudi sesuai rute dan jadwal; menjemput custody.</li>
+            <li>Membantu proses pengisian (logistik / keamanan area).</li>
+            <li>Mencatat log perjalanan dan laporan BBM.</li>
+            <li>Melaporkan kejadian lalu lintas atau gangguan kendaraan.</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th>No</th><th>Aspek</th><th>Indikator</th><th>Target</th><th>Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Tepat Waktu</td><td>% keberangkatan & tiba sesuai jadwal</td><td>≥ 98%</td><td class="bobot">25</td></tr>
+              <tr><td>2</td><td>Keselamatan</td><td>Jumlah insiden / kehilangan</td><td>0</td><td class="bobot">25</td></tr>
+              <tr><td>3</td><td>Kondisi Kendaraan</td><td>Layak jalan & terawat</td><td>100%</td><td class="bobot">15</td></tr>
+              <tr><td>4</td><td>Kepatuhan SOP</td><td>Prosedur keamanan dipenuhi</td><td>100%</td><td class="bobot">20</td></tr>
+              <tr><td>5</td><td>Efisiensi BBM</td><td>Konsumsi sesuai standar</td><td>±10%</td><td class="bobot">15</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+
+      flm: {
+        title: 'FLM',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">F</div>
+            <div>
+              <h3>FLM (First Level Maintenance)</h3>
+              <div class="small-muted">Menangani problem ATM pada kesempatan pertama hingga normal beroperasi</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Menerima laporan dan melakukan analisa awal (error log).</li>
+            <li>Respon cepat ke lokasi sesuai prioritas SLA.</li>
+            <li>Menangani issue ringan: kertas macet, printer, dispenser, restart sistem.</li>
+            <li>Eskalasi ke SLM bila kerusakan berat.</li>
+            <li>Dokumentasi tindakan (waktu respon & resolution).</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th>No</th><th>Aspek</th><th>Indikator</th><th>Target / SLA</th><th>Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Response Time</td><td>Waktu tiba di lokasi</td><td>≤ 30 mnt (urban)</td><td class="bobot">25</td></tr>
+              <tr><td>2</td><td>Resolution Time</td><td>Waktu sampai ATM UP</td><td>≤ 60 mnt (minor)</td><td class="bobot">25</td></tr>
+              <tr><td>3</td><td>Availability</td><td>% uptime ATM</td><td>≥ 98% / bulan</td><td class="bobot">15</td></tr>
+              <tr><td>4</td><td>Kasus Berulang</td><td>% kasus berulang pada ATM yang sama</td><td>≤ 2%</td><td class="bobot">10</td></tr>
+              <tr><td>5</td><td>Dokumentasi</td><td>Laporan tiket & foto lengkap</td><td>100%</td><td class="bobot">15</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+
+      scheduler: {
+        title: 'Admin Scheduler',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">S</div>
+            <div>
+              <h3>Admin Scheduler</h3>
+              <div class="small-muted">Memantau saldo ATM, jadwal pengisian, dan mengelola tiket problem via dashboard</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Memantau saldo ATM; memberi tanda pada ATM ≤ 25%.</li>
+            <li>Menyusun jadwal pengisian dan mengoptimalkan rute.</li>
+            <li>Mengirim tiket ke FLM jika ada problem & memastikan update status.</li>
+            <li>Membuat laporan harian/mingguan kondisi ATM.</li>
+            <li>Berkoordinasi real-time dengan tim lapangan.</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th>No</th><th>Aspek</th><th>Indikator</th><th>Target</th><th>Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Ketepatan Penjadwalan</td><td>Jadwal sesuai kondisi saldo</td><td>≥ 98% akurat</td><td class="bobot">20</td></tr>
+              <tr><td>2</td><td>Kecepatan Respon Low Cash</td><td>Waktu dari deteksi ≤25% ke jadwal</td><td>≤ 1 jam</td><td class="bobot">20</td></tr>
+              <tr><td>3</td><td>Monitoring Problem</td><td>% tiket diteruskan ke FLM</td><td>≥ 95% dalam 10 mnt</td><td class="bobot">15</td></tr>
+              <tr><td>4</td><td>Laporan Akurat</td><td>Laporan harian tepat waktu</td><td>100%</td><td class="bobot">15</td></tr>
+              <tr><td>5</td><td>Koordinasi</td><td>Nilai penilaian tim</td><td>≥ 85</td><td class="bobot">10</td></tr>
+              <tr><td>6</td><td>Disiplin</td><td>Kehadiran & kesiapsiagaan</td><td>≥ 95%</td><td class="bobot">20</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+
+      adminkas: {
+        title: 'Admin Kas',
+        content: `
+          <div class="role-title mb-3">
+            <div class="role-badge">A</div>
+            <div>
+              <h3>Admin Kas</h3>
+              <div class="small-muted">Mengelola rekonsiliasi kaset, petty cash operasional, dan administrasi pegawai</div>
+            </div>
+          </div>
+
+          <h5>Tugas Pokok & Rincian</h5>
+          <ul>
+            <li>Menghitung ulang isi kaset saat kembali dan mencatat selisih.</li>
+            <li>Menyusun laporan selisih dan melakukan investigasi awal.</li>
+            <li>Mengelola petty cash (BBM, tol, perawatan) dan bukti transaksi.</li>
+            <li>Mengelola data lembur, absensi, kontrak karyawan, dan arsip pegawai.</li>
+            <li>Menyerahkan rekap keuangan harian/mingguan kepada manajemen.</li>
+          </ul>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <h5 class="mb-0">KPI Utama</h5>
+            <div>
+              <button class="btn btn-sm btn-success" id="startAssessBtn">Isi Nilai KPI</button>
+            </div>
+          </div>
+
+          <table class="table table-bordered kpi-table" id="roleKpiTable">
+            <thead class="table-light"><tr><th>No</th><th>Aspek</th><th>Indikator</th><th>Target</th><th>Bobot (%)</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Akurasi Rekonsiliasi</td><td>% rekonsiliasi tanpa selisih</td><td>≥ 98%</td><td class="bobot">25</td></tr>
+              <tr><td>2</td><td>Waktu Rekonsiliasi</td><td>Maks. waktu per kaset</td><td>≤ 1 jam</td><td class="bobot">10</td></tr>
+              <tr><td>3</td><td>Petty Cash</td><td>Ketepatan bukti & laporan</td><td>100% valid</td><td class="bobot">20</td></tr>
+              <tr><td>4</td><td>Administrasi Kepegawaian</td><td>Rekap lembur & kontrak tepat waktu</td><td>100%</td><td class="bobot">20</td></tr>
+              <tr><td>5</td><td>Kepatuhan SOP</td><td>Audit & kepatuhan</td><td>Tidak ada temuan mayor</td><td class="bobot">25</td></tr>
+            </tbody>
+          </table>
+        `
+      }
+    }
+
+    // Render function
+    const detailArea = document.getElementById('detailArea')
+    document.querySelectorAll('[data-role]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const r = btn.getAttribute('data-role')
+        const data = roles[r]
+        if(!data) return
+        detailArea.innerHTML = data.content + buildAssessHolder();
+        window.scrollTo({top:0,behavior:'smooth'})
+        attachAssessButton();
+      })
+    })
+
+    // builds a container where assessment panel will appear
+    function buildAssessHolder(){
+      return `
+        <div id="assessHolder" class="mt-3">
+          <!-- assessment panel will be injected here when user clicks Isi Nilai KPI -->
+        </div>
+      `
+    }
+
+    // attach event to displayed startAssessBtn
+    function attachAssessButton(){
+      const btn = document.getElementById('startAssessBtn')
+      if(!btn) return
+      btn.addEventListener('click', ()=>{ openAssessmentPanel() })
+    }
+
+    // read KPI rows from current role table and return array of items {no, aspect, indicator, target, bobot}
+    function readRoleKpis(){
+      const rows = Array.from(document.querySelectorAll('#roleKpiTable tbody tr'))
+      return rows.map(tr=>{
+        const cells = tr.querySelectorAll('td')
+        return {
+          no: cells[0].textContent.trim(),
+          aspect: cells[1].textContent.trim(),
+          indicator: cells[2].textContent.trim(),
+          target: cells[3].textContent.trim(),
+          bobot: Number((cells[cells.length-1].textContent||'0').trim())
+        }
+      })
+    }
+
+    // create the assessment panel HTML and inject
+    function openAssessmentPanel(){
+      const kpis = readRoleKpis()
+      if(kpis.length===0) return alert('Tidak ada KPI untuk dinilai pada role ini.')
+
+      const holder = document.getElementById('assessHolder')
+      holder.innerHTML = `
+        <div class="assess-panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Form Pengisian KPI</h5>
+            <div class="small-muted">Isi data pegawai dan nilai untuk setiap parameter</div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-3"><input id="empName" class="form-control form-control-sm" placeholder="Nama Pegawai"></div>
+            <div class="col-md-2"><input id="empNpp" class="form-control form-control-sm" placeholder="NPP"></div>
+            <div class="col-md-3"><input id="empJabatan" class="form-control form-control-sm" placeholder="Jabatan"></div>
+            <div class="col-md-4"><input id="empKantor" class="form-control form-control-sm" placeholder="Kantor"></div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered" id="assessTable">
+              <thead class="table-light"><tr><th style="width:40px">No</th><th>Aspek</th><th style="width:110px">Bobot (%)</th><th style="width:120px">Nilai (0-100)</th><th style="width:140px">Hasil (Nilai × Bobot/100)</th><th>Keterangan</th></tr></thead>
+              <tbody>
+                ${kpis.map(k=> `
+                  <tr>
+                    <td>${k.no}</td>
+                    <td>${escapeHtml(k.aspect)}<div class="small-muted">${escapeHtml(k.indicator)}</div></td>
+                    <td class="text-center"><input type="number" min="0" max="100" class="form-control form-control-sm bobot-input text-center" value="${k.bobot}"></td>
+                    <td class="text-center"><input type="number" min="0" max="100" class="form-control form-control-sm nilai-input text-center" value="0"></td>
+                    <td class="text-center"><span class="hasil">0.00</span></td>
+                    <td><input class="form-control form-control-sm ket-input" placeholder="(opsional)"></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="4" class="text-end">Total Skor (terbobot):</th>
+                  <th class="text-center"><span id="totalHasil">0.00</span></th>
+                  <th></th>
+                </tr>
+                <tr>
+                  <th colspan="4" class="text-end">Rata-rata (dinormalisasi 0-100):</th>
+                  <th class="text-center"><span id="avgScore">0.00</span></th>
+                  <th></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-primary btn-sm" id="saveResultBtn">Simpan Hasil</button>
+            <button class="btn btn-outline-secondary btn-sm" id="exportCsvBtn">Ekspor CSV</button>
+            <button class="btn btn-outline-dark btn-sm" id="printBtn">Print Hasil</button>
+            <button class="btn btn-light btn-sm" id="closeAssessBtn">Tutup</button>
+          </div>
+        </div>
+      `
+
+      attachAssessEvents()
+    }
+
+    function attachAssessEvents(){
+      const table = document.getElementById('assessTable')
+      const nilaiInputs = table.querySelectorAll('.nilai-input')
+      const bobotInputs = table.querySelectorAll('.bobot-input')
+
+      function recalc(){
+        const rows = Array.from(table.querySelectorAll('tbody tr'))
+        let total = 0
+        let totalBobot = 0
+        rows.forEach(r=>{
+          const bobot = Number(r.querySelector('.bobot-input').value) || 0
+          const nilai = Number(r.querySelector('.nilai-input').value) || 0
+          const hasil = (nilai * bobot)/100
+          r.querySelector('.hasil').textContent = hasil.toFixed(2)
+          total += hasil
+          totalBobot += bobot
+        })
+        document.getElementById('totalHasil').textContent = total.toFixed(2)
+        const avg = totalBobot>0 ? (total / (totalBobot/100)) : 0
+        document.getElementById('avgScore').textContent = avg.toFixed(2)
+      }
+
+      nilaiInputs.forEach(i=> i.addEventListener('input', recalc))
+      bobotInputs.forEach(i=> i.addEventListener('input', recalc))
+
+      // Save result to localStorage
+      document.getElementById('saveResultBtn').addEventListener('click', ()=>{
+        const emp = {
+          name: document.getElementById('empName').value.trim(),
+          npp: document.getElementById('empNpp').value.trim(),
+          jabatan: document.getElementById('empJabatan').value.trim(),
+          kantor: document.getElementById('empKantor').value.trim(),
+          date: new Date().toISOString()
+        }
+        const rows = Array.from(table.querySelectorAll('tbody tr')).map(r=>({
+          no: r.cells[0].textContent.trim(),
+          aspek: r.cells[1].childNodes[0].textContent.trim(),
+          indicator: r.cells[1].querySelector('.small-muted')? r.cells[1].querySelector('.small-muted').textContent : '',
+          bobot: Number(r.querySelector('.bobot-input').value)||0,
+          nilai: Number(r.querySelector('.nilai-input').value)||0,
+          hasil: Number(r.querySelector('.hasil').textContent)||0,
+          ket: r.querySelector('.ket-input').value||''
+        }))
+
+        const saved = JSON.parse(localStorage.getItem('kpi_results')||'[]')
+        saved.push({emp, rows, totals:{total: Number(document.getElementById('totalHasil').textContent), avg: Number(document.getElementById('avgScore').textContent)}})
+        localStorage.setItem('kpi_results', JSON.stringify(saved))
+        alert('Hasil disimpan ke localStorage (kpi_results).')
+      })
+
+      // Export CSV
+      document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+        const name = document.getElementById('empName').value.trim() || 'pegawai'
+        const npp = document.getElementById('empNpp').value.trim() || ''
+        const rows = Array.from(table.querySelectorAll('tbody tr')).map(r=>{
+          const aspek = r.cells[1].childNodes[0].textContent.trim()
+          const indicator = r.cells[1].querySelector('.small-muted')? r.cells[1].querySelector('.small-muted').textContent : ''
+          const bobot = r.querySelector('.bobot-input').value
+          const nilai = r.querySelector('.nilai-input').value
+          const hasil = r.querySelector('.hasil').textContent
+          const ket = r.querySelector('.ket-input').value
+          return [aspek, indicator, bobot, nilai, hasil, ket]
+        })
+        let csv = 'Nama,NPP,Jabatan,Kantor,Date\n'
+        csv += `${escapeCsv(name)},${escapeCsv(npp)},${escapeCsv(document.getElementById('empJabatan').value)},${escapeCsv(document.getElementById('empKantor').value)},${new Date().toISOString()}\n\n`
+        csv += 'Aspek,Indicator,Bobot,Nilai,Hasil,Keterangan\n'
+        csv += rows.map(r=> r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
+        downloadBlob(csv, `kpi_${name.replace(/\s+/g,'_')}.csv`)
+      })
+
+      // Print
+      document.getElementById('printBtn').addEventListener('click', ()=>{
+        window.print()
+      })
+
+      // Close
+      document.getElementById('closeAssessBtn').addEventListener('click', ()=>{
+        document.getElementById('assessHolder').innerHTML = ''
+      })
+
+      // initial calc
+      recalc()
+    }
+
+    // helpers
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+    function escapeCsv(s){ return '"'+String(s||'').replace(/"/g,'""')+'"' }
+    function downloadBlob(text, filename){
+      const blob = new Blob([text], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // Optional: auto-click first role (uncomment if you want startup)
+    // document.querySelector('[data-role="kasir"]').click()
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
