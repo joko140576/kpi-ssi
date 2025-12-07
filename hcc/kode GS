@@ -1,0 +1,232 @@
+// Tambahkan di awal function doGet(e)
+function doGet(e) {
+  // Handle CORS preflight
+  if (e && e.parameter && e.parameter.type === 'options') {
+    return handleCORS();
+  }
+  
+  const type = e.parameter.type;
+
+  if(type === 'getPeriods') return getPeriods();
+  if(type === 'getKPI') return getKPI(e.parameter.role);
+
+  return ContentService.createTextOutput(JSON.stringify({error:'invalid request'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Tambahkan function untuk handle CORS
+function handleCORS() {
+  return ContentService.createTextOutput(JSON.stringify({}))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+}
+
+// Tambahkan di awal function doPost(e)
+function doPost(e) {
+  // Handle CORS preflight
+  if (e && e.postData && e.postData.contents) {
+    try {
+      const data = JSON.parse(e.postData.contents);
+      if (data.type === 'options') {
+        return handleCORS();
+      }
+    } catch(err) {
+      // bukan JSON, lanjutkan
+    }
+  }
+  
+  // Set headers untuk CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json'
+  };
+  
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    if(data.type === 'saveScores') {
+      const result = saveScores(data.items);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON)
+        .setHeaders(headers);
+    }
+    
+    if(data.type === 'saveFinalScore') {
+      const result = saveFinalScore(data);
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON)
+        .setHeaders(headers);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({error:'invalid POST'}))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders(headers);
+    
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    }))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeaders(headers);
+  }
+}
+
+
+function doGet(e){
+  const type = e.parameter.type;
+
+  if(type === 'getPeriods') return getPeriods();
+  if(type === 'getKPI') return getKPI(e.parameter.role);
+
+  return ContentService.createTextOutput(JSON.stringify({error:'invalid request'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  const data = JSON.parse(e.postData.contents);
+
+  if(data.type === 'saveScores') return saveScores(data.items);
+  if(data.type === 'saveFinalScore') return saveFinalScore(data);
+
+  return ContentService.createTextOutput(JSON.stringify({error:'invalid POST'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* =============================
+      CONFIG
+============================= */
+const SS_ID = '1k3E8NloCFkJSlA9OZaKtscF87hs9OjnMC_92-XJndjQ';
+
+const shPeriod      = 'PERIOD';
+const shKPI         = 'KPI_MASTER';
+const shScoreDetail = 'KPI_SCORE_DETAIL';   // baru
+const shScoreFinal  = 'HASIL_KPI';          // final score
+
+/* =============================
+      1. GET PERIODS
+============================= */
+function getPeriods(){
+  const ss = SpreadsheetApp.openById(SS_ID);
+  const sh = ss.getSheetByName(shPeriod);
+  const data = sh.getDataRange().getValues();
+  const out = [];
+
+  for(let i=1;i<data.length;i++){
+    out.push({
+      period_id: data[i][0],
+      period_name: data[i][1],
+      start_date: data[i][2],
+      end_date: data[i][3]
+    });
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* =============================
+      2. GET KPI BY ROLE
+============================= */
+function getKPI(role){
+  const ss = SpreadsheetApp.openById(SS_ID);
+  const sh = ss.getSheetByName(shKPI);
+  const data = sh.getDataRange().getValues();
+  const out = [];
+
+  for(let i=1;i<data.length;i++){
+    if(data[i][1] === role){
+      out.push({
+        id: data[i][0],
+        jabatan: data[i][1],
+        area_kpi: data[i][2],
+        indikator: data[i][3],
+        target: data[i][4],
+        bobot: data[i][5]
+      });
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* =============================
+      3. SAVE DETAIL KPI REALISASI
+============================= */
+function saveScores(items){
+  const ss = SpreadsheetApp.openById(SS_ID);
+  const sh = ss.getSheetByName(shScoreDetail);
+
+  const rows = items.map(o => [
+    new Date(),
+    o.period_id,
+    o.username,
+    o.kpi_id,
+    o.realisasi,
+    o.catatan
+  ]);
+
+  sh.getRange(sh.getLastRow()+1,1,rows.length, rows[0].length).setValues(rows);
+
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* =============================
+      4. SAVE FINAL SCORE
+============================= */
+/* =============================
+      4. SAVE FINAL SCORE
+============================= */
+function saveFinalScore(data){
+  try {
+    const ss = SpreadsheetApp.openById(SS_ID);
+    const sh = ss.getSheetByName(shScoreFinal);
+    
+    // Cek apakah data sudah ada (untuk menghindari duplikasi)
+    const existingData = sh.getDataRange().getValues();
+    const isDuplicate = existingData.some(row => 
+      row[1] === data.period_name && 
+      row[2] === data.jabatan
+    );
+    
+    if (isDuplicate) {
+      // Jika sudah ada, update row yang ada
+      for(let i = 1; i < existingData.length; i++) {
+        if(existingData[i][1] === data.period_name && 
+           existingData[i][2] === data.jabatan) {
+          sh.getRange(i + 1, 1).setValue(new Date()); // Update timestamp
+          sh.getRange(i + 1, 4).setValue(data.score); // Update score
+          break;
+        }
+      }
+    } else {
+      // Jika belum ada, tambahkan baru
+      sh.appendRow([
+        new Date(),
+        data.period_name,
+        data.jabatan,
+        data.score
+      ]);
+    }
+    
+    SpreadsheetApp.flush(); // Force save changes
+    
+    return {
+      success: true,
+      message: "Data berhasil disimpan ke HASIL_KPI"
+    };
+    
+  } catch(error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+
